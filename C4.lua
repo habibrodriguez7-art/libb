@@ -185,9 +185,19 @@ function Library.ConfigSystem.Delete()
     end
 end
 
-local function MarkDirty()
+local function MarkDirty(immediate)
     if _G.AutoSaveEnabled == false then return end
     isDirty = true
+    if immediate then
+        -- Save right now, no debounce
+        if Library._saveThread then
+            pcall(function() task.cancel(Library._saveThread) end)
+            Library._saveThread = nil
+        end
+        Library.ConfigSystem.Save()
+        isDirty = false
+        return
+    end
     if Library._saveThread then
         pcall(function() task.cancel(Library._saveThread) end)
         Library._saveThread = nil
@@ -1768,7 +1778,7 @@ function Library:CreateInput(parent, label, configPath, defaultValue, callback)
 
         if configPath then
             Library.ConfigSystem.Set(configPath, value)
-            MarkDirty()
+            MarkDirty(true)  -- immediate save for inputs
         end
         if callback then callback(value) end
     end))
@@ -1902,7 +1912,7 @@ function Library:CreateTextBox(parent, label, placeholder, configPath, defaultVa
             lastValue = value
             if configPath then
                 Library.ConfigSystem.Set(configPath, value)
-                MarkDirty()
+                MarkDirty(true)  -- immediate save for inputs
             end
             if callback then callback(value) end
         end
@@ -1934,6 +1944,13 @@ function Library:Initialize()
             Library.ConfigSystem.Save()
         end
     end))
+
+    -- Backup save: BindToClose (in case PlayerRemoving doesn't fire on executors)
+    pcall(function()
+        game:BindToClose(function()
+            Library.ConfigSystem.Save()
+        end)
+    end)
 end
 
 function Library:LoadConfig(data)
