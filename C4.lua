@@ -213,11 +213,11 @@ local function RegisterCallback(configPath, callback, componentType, defaultValu
     end
 end
 
-local function ExecuteConfigCallbacks()
+local function ExecuteConfigCallbacks(visualOnly)
     for _, entry in ipairs(CallbackRegistry) do
         local value = Library.ConfigSystem.Get(entry.path, entry.default)
         if entry.updateVisual then entry.updateVisual(value) end
-        if entry.callback then entry.callback(value) end
+        if not visualOnly and entry.callback then entry.callback(value) end
     end
 end
 
@@ -1927,7 +1927,7 @@ function Library:CreateTextBox(parent, label, placeholder, configPath, defaultVa
 end
 
 function Library:Initialize()
-    ExecuteConfigCallbacks()
+    ExecuteConfigCallbacks(true)  -- visual sync only, callbacks already fired at creation
 
     self:AddConnection("playerRemoving", Players.PlayerRemoving:Connect(function(plr)
         if plr == localPlayer then
