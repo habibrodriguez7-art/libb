@@ -185,19 +185,9 @@ function Library.ConfigSystem.Delete()
     end
 end
 
-local function MarkDirty(immediate)
+local function MarkDirty()
     if _G.AutoSaveEnabled == false then return end
     isDirty = true
-    if immediate then
-        -- Save right now, no debounce
-        if Library._saveThread then
-            pcall(function() task.cancel(Library._saveThread) end)
-            Library._saveThread = nil
-        end
-        Library.ConfigSystem.Save()
-        isDirty = false
-        return
-    end
     if Library._saveThread then
         pcall(function() task.cancel(Library._saveThread) end)
         Library._saveThread = nil
@@ -223,11 +213,11 @@ local function RegisterCallback(configPath, callback, componentType, defaultValu
     end
 end
 
-local function ExecuteConfigCallbacks(visualOnly)
+local function ExecuteConfigCallbacks()
     for _, entry in ipairs(CallbackRegistry) do
         local value = Library.ConfigSystem.Get(entry.path, entry.default)
         if entry.updateVisual then entry.updateVisual(value) end
-        if not visualOnly and entry.callback then entry.callback(value) end
+        if entry.callback then entry.callback(value) end
     end
 end
 
@@ -390,30 +380,14 @@ function Library:CreateWindow(config)
         ZIndex = 6
     })
 
-    local btnCloseHeader = new("TextButton", {
+    local btnMinHeader = new("TextButton", {
         Parent = scriptHeader,
         Size = UDim2.new(0, 28, 0, 28),
         Position = UDim2.new(1, -35, 0.5, -14),
         BackgroundColor3 = colors.bg3,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
-        Text = "X",
-        Font = Enum.Font.GothamBold,
-        TextSize = fontSize.subtitle,
-        TextColor3 = colors.textDim,
-        AutoButtonColor = false,
-        ZIndex = 7
-    })
-    new("UICorner", {Parent = btnCloseHeader, CornerRadius = UDim.new(0, 7)})
-
-    local btnMinHeader = new("TextButton", {
-        Parent = scriptHeader,
-        Size = UDim2.new(0, 28, 0, 28),
-        Position = UDim2.new(1, -68, 0.5, -14),
-        BackgroundColor3 = colors.bg3,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        Text = "\u{2500}",
+        Text = "─",
         Font = Enum.Font.GothamBold,
         TextSize = fontSize.subtitle,
         TextColor3 = colors.textDim,
@@ -574,125 +548,6 @@ function Library:CreateWindow(config)
         end
     end))
 
-    local closeConfirmOverlay = nil
-
-    local function showCloseConfirm()
-        if closeConfirmOverlay then return end
-
-        closeConfirmOverlay = new("Frame", {
-            Parent = self._win,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-            BackgroundTransparency = 0.35,
-            BorderSizePixel = 0,
-            ZIndex = 500,
-            Name = "CloseConfirmOverlay"
-        })
-
-        local popup = new("Frame", {
-            Parent = closeConfirmOverlay,
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Size = UDim2.new(0, 220, 0, 120),
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            BackgroundColor3 = colors.bg2,
-            BorderSizePixel = 0,
-            ZIndex = 501
-        })
-        new("UICorner", {Parent = popup, CornerRadius = UDim.new(0, 10)})
-        new("UIStroke", {Parent = popup, Color = colors.primary, Thickness = 1.5, Transparency = 0.5})
-
-        local accentLine = new("Frame", {
-            Parent = popup,
-            Size = UDim2.new(0.6, 0, 0, 3),
-            Position = UDim2.new(0.2, 0, 0, 0),
-            BackgroundColor3 = colors.primary,
-            BorderSizePixel = 0,
-            ZIndex = 502
-        })
-        new("UICorner", {Parent = accentLine, CornerRadius = UDim.new(1, 0)})
-
-        new("TextLabel", {
-            Parent = popup,
-            Text = "Close Window?",
-            Size = UDim2.new(1, 0, 0, 22),
-            Position = UDim2.new(0, 0, 0, 12),
-            BackgroundTransparency = 1,
-            Font = Enum.Font.GothamBold,
-            TextSize = fontSize.header,
-            TextColor3 = colors.primary,
-            ZIndex = 502
-        })
-
-        new("TextLabel", {
-            Parent = popup,
-            Text = "Are you sure you want to\nclose this window?",
-            Size = UDim2.new(1, -20, 0, 30),
-            Position = UDim2.new(0, 10, 0, 36),
-            BackgroundTransparency = 1,
-            Font = Enum.Font.Gotham,
-            TextSize = fontSize.small,
-            TextColor3 = colors.textDim,
-            TextWrapped = true,
-            ZIndex = 502
-        })
-
-        local btnConfirm = new("TextButton", {
-            Parent = popup,
-            Size = UDim2.new(0.42, 0, 0, 28),
-            Position = UDim2.new(0.06, 0, 1, -38),
-            BackgroundColor3 = Color3.fromRGB(220, 50, 50),
-            BorderSizePixel = 0,
-            Text = "Close",
-            Font = Enum.Font.GothamBold,
-            TextSize = fontSize.normal,
-            TextColor3 = colors.text,
-            AutoButtonColor = false,
-            ZIndex = 503
-        })
-        new("UICorner", {Parent = btnConfirm, CornerRadius = UDim.new(0, 7)})
-
-        local btnCancel = new("TextButton", {
-            Parent = popup,
-            Size = UDim2.new(0.42, 0, 0, 28),
-            Position = UDim2.new(0.52, 0, 1, -38),
-            BackgroundColor3 = colors.bg4,
-            BorderSizePixel = 0,
-            Text = "Cancel",
-            Font = Enum.Font.GothamBold,
-            TextSize = fontSize.normal,
-            TextColor3 = colors.textDim,
-            AutoButtonColor = false,
-            ZIndex = 503
-        })
-        new("UICorner", {Parent = btnCancel, CornerRadius = UDim.new(0, 7)})
-
-        btnConfirm.MouseButton1Click:Connect(function()
-            if self._gui then
-                self._gui:Destroy()
-            end
-        end)
-
-        btnCancel.MouseButton1Click:Connect(function()
-            if closeConfirmOverlay then
-                closeConfirmOverlay:Destroy()
-                closeConfirmOverlay = nil
-            end
-        end)
-
-        closeConfirmOverlay.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                if closeConfirmOverlay then
-                    closeConfirmOverlay:Destroy()
-                    closeConfirmOverlay = nil
-                end
-            end
-        end)
-    end
-
-    self:AddConnection("closeBtn", btnCloseHeader.MouseButton1Click:Connect(function()
-        showCloseConfirm()
-    end))
-
     local dragging, dragStart, startPos = false, nil, nil
 
     self:AddConnection("headerDragStart", scriptHeader.InputBegan:Connect(function(input)
@@ -819,7 +674,7 @@ function Library:CreatePage(name, title, imageId, order)
         Name = "Label"
     })
 
-    self._navButtons[name] = {btn = btn, indicator = indicator, page = page, title = title, iconRef = btn:FindFirstChild("Icon"), labelRef = btn:FindFirstChild("Label")}
+    self._navButtons[name] = {btn = btn, indicator = indicator, page = page, title = title}
 
     self:AddConnection("navBtn_" .. name, btn.MouseButton1Click:Connect(function()
         self:_switchPage(name)
@@ -843,11 +698,11 @@ function Library:_switchPage(pageName)
         local isActive = name == pageName
         data.btn.BackgroundColor3 = isActive and colors.bg2 or colors.bg2
         data.btn.BackgroundTransparency = isActive and 0.3 or 1
-        local icon = data.iconRef
+        local icon = data.btn:FindFirstChild("Icon")
         if icon then
             icon.ImageColor3 = isActive and colors.primary or colors.textDim
         end
-        local label = data.labelRef
+        local label = data.btn:FindFirstChild("Label")
         if label then
             label.TextColor3 = isActive and colors.text or colors.textDim
         end
@@ -995,13 +850,6 @@ function Library:CreateToggle(parent, label, configPath, callback, disableSave, 
         RegisterCallback(configPath, callback, "toggle", defaultValue or false, function(val)
             on = val
             updateVisual()
-        end)
-    end
-
-    -- Fire callback at creation time with saved value
-    if callback then
-        task.defer(function()
-            pcall(callback, on)
         end)
     end
 
@@ -1379,8 +1227,7 @@ function Library:CreateDropdown(parent, title, imageId, items, configPath, onSel
     end
 
     function DropdownFunc:Refresh(newList)
-        local preserved = self.Value
-        self:SetValues(newList, preserved)
+        self:SetValues(newList, nil)
     end
 
     local searchThread = nil
@@ -1689,9 +1536,7 @@ function Library:CreateMultiDropdown(parent, title, imageId, items, configPath, 
     end
 
     function DropdownFunc:Refresh(newList)
-        local preserved = self.Value
-        if type(preserved) ~= "table" then preserved = {} end
-        self:SetValues(newList, preserved)
+        self:SetValues(newList, {})
     end
 
     local searchThread = nil
@@ -1778,7 +1623,7 @@ function Library:CreateInput(parent, label, configPath, defaultValue, callback)
 
         if configPath then
             Library.ConfigSystem.Set(configPath, value)
-            MarkDirty(true)  -- immediate save for inputs
+            MarkDirty()
         end
         if callback then callback(value) end
     end))
@@ -1786,14 +1631,6 @@ function Library:CreateInput(parent, label, configPath, defaultValue, callback)
     RegisterCallback(configPath, callback, "input", defaultValue, function(val)
         inputBox.Text = tostring(val ~= nil and val or defaultValue or "")
     end)
-
-    -- Fire callback at creation time with saved value
-    if callback then
-        task.defer(function()
-            pcall(callback, resolveValue(tostring(initialValue)))
-        end)
-    end
-
     return frame
 end
 
@@ -1838,21 +1675,20 @@ function Library:CreateButton(parent, label, callback)
         })
         activeTween = tweenIn
         tweenIn:Play()
+        tweenIn.Completed:Wait()
 
-        task.spawn(function() pcall(callback) end)
+        pcall(callback)
 
-        task.delay(0.1, function()
-            local tweenOut = TweenService:Create(btnFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                BackgroundTransparency = 0.15,
-                Size = UDim2.new(1, 0, 0, 30)
-            })
-            activeTween = tweenOut
-            tweenOut:Play()
-            tweenOut.Completed:Once(function()
-                activeTween = nil
-                clicking = false
-            end)
-        end)
+        local tweenOut = TweenService:Create(btnFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 0.15,
+            Size = UDim2.new(1, 0, 0, 30)
+        })
+        activeTween = tweenOut
+        tweenOut:Play()
+        tweenOut.Completed:Wait()
+
+        activeTween = nil
+        clicking = false
     end))
 
     return btnFrame
@@ -1912,7 +1748,7 @@ function Library:CreateTextBox(parent, label, placeholder, configPath, defaultVa
             lastValue = value
             if configPath then
                 Library.ConfigSystem.Set(configPath, value)
-                MarkDirty(true)  -- immediate save for inputs
+                MarkDirty()
             end
             if callback then callback(value) end
         end
@@ -1926,31 +1762,17 @@ function Library:CreateTextBox(parent, label, placeholder, configPath, defaultVa
         end)
     end
 
-    -- Fire callback at creation time with saved value
-    if callback and initialValue ~= nil and initialValue ~= "" then
-        task.defer(function()
-            pcall(callback, tostring(initialValue))
-        end)
-    end
-
     return {Container = container, TextBox = textBox, SetValue = function(v) textBox.Text = tostring(v) lastValue = tostring(v) end}
 end
 
 function Library:Initialize()
-    ExecuteConfigCallbacks(true)  -- visual sync only, callbacks already fired at creation
+    ExecuteConfigCallbacks()
 
     self:AddConnection("playerRemoving", Players.PlayerRemoving:Connect(function(plr)
         if plr == localPlayer then
             Library.ConfigSystem.Save()
         end
     end))
-
-    -- Backup save: BindToClose (in case PlayerRemoving doesn't fire on executors)
-    pcall(function()
-        game:BindToClose(function()
-            Library.ConfigSystem.Save()
-        end)
-    end)
 end
 
 function Library:LoadConfig(data)
@@ -2034,11 +1856,7 @@ function Library:MakeNotify(config)
     task.delay(delay, function()
         pcall(function()
             if notif and notif.Parent then
-                local fadeOut = TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 1})
-                fadeOut:Play()
-                fadeOut.Completed:Once(function()
-                    pcall(function() notif:Destroy() end)
-                end)
+                notif:Destroy()
             end
         end)
     end)
@@ -2173,56 +1991,56 @@ function Library:Window(config)
     WindowObject._tabOrder = 0
     WindowObject._initialized = false
 
-    task.delay(2, function()
+    task.delay(0.5, function()
         if not WindowObject._initialized then
             WindowObject._initialized = true
             Library:Initialize()
         end
     end)
 
-    local iconMap = {
-        ["player"]    = "rbxassetid://12120698352",
-        ["web"]       = "rbxassetid://137601480983962",
-        ["bag"]       = "rbxassetid://8601111810",
-        ["shop"]      = "rbxassetid://4985385964",
-        ["cart"]      = "rbxassetid://128874923961846",
-        ["plug"]      = "rbxassetid://137601480983962",
-        ["settings"]  = "rbxassetid://70386228443175",
-        ["loop"]      = "rbxassetid://122032243989747",
-        ["gps"]       = "rbxassetid://78381660144034",
-        ["compas"]    = "rbxassetid://125300760963399",
-        ["gamepad"]   = "rbxassetid://84173963561612",
-        ["boss"]      = "rbxassetid://13132186360",
-        ["scroll"]    = "rbxassetid://114127804740858",
-        ["menu"]      = "rbxassetid://6340513838",
-        ["crosshair"] = "rbxassetid://12614416478",
-        ["user"]      = "rbxassetid://108483430622128",
-        ["stat"]      = "rbxassetid://12094445329",
-        ["eyes"]      = "rbxassetid://14321059114",
-        ["sword"]     = "rbxassetid://82472368671405",
-        ["discord"]   = "rbxassetid://94434236999817",
-        ["star"]      = "rbxassetid://107005941750079",
-        ["skeleton"]  = "rbxassetid://17313330026",
-        ["payment"]   = "rbxassetid://18747025078",
-        ["scan"]      = "rbxassetid://109869955247116",
-        ["alert"]     = "rbxassetid://73186275216515",
-        ["question"]  = "rbxassetid://17510196486",
-        ["idea"]      = "rbxassetid://16833255748",
-        ["strom"]     = "rbxassetid://13321880293",
-        ["water"]     = "rbxassetid://100076212630732",
-        ["dcs"]       = "rbxassetid://15310731934",
-        ["start"]     = "rbxassetid://108886429866687",
-        ["next"]      = "rbxassetid://12662718374",
-        ["rod"]       = "rbxassetid://103247953194129",
-        ["fish"]      = "rbxassetid://97167558235554",
-        ["send"]      = "rbxassetid://122775063389583",
-        ["home"]      = "rbxassetid://86450224791749",
-    }
-
     function WindowObject:AddTab(tabConfig)
         tabConfig = tabConfig or {}
         local tabName = tabConfig.Name or "Tab"
         local tabIcon = tabConfig.Icon or ""
+
+        local iconMap = {
+            ["player"]    = "rbxassetid://12120698352",
+            ["web"]       = "rbxassetid://137601480983962",
+            ["bag"]       = "rbxassetid://8601111810",
+            ["shop"]      = "rbxassetid://4985385964",
+            ["cart"]      = "rbxassetid://128874923961846",
+            ["plug"]      = "rbxassetid://137601480983962",
+            ["settings"]  = "rbxassetid://70386228443175",
+            ["loop"]      = "rbxassetid://122032243989747",
+            ["gps"]       = "rbxassetid://78381660144034",
+            ["compas"]    = "rbxassetid://125300760963399",
+            ["gamepad"]   = "rbxassetid://84173963561612",
+            ["boss"]      = "rbxassetid://13132186360",
+            ["scroll"]    = "rbxassetid://114127804740858",
+            ["menu"]      = "rbxassetid://6340513838",
+            ["crosshair"] = "rbxassetid://12614416478",
+            ["user"]      = "rbxassetid://108483430622128",
+            ["stat"]      = "rbxassetid://12094445329",
+            ["eyes"]      = "rbxassetid://14321059114",
+            ["sword"]     = "rbxassetid://82472368671405",
+            ["discord"]   = "rbxassetid://94434236999817",
+            ["star"]      = "rbxassetid://107005941750079",
+            ["skeleton"]  = "rbxassetid://17313330026",
+            ["payment"]   = "rbxassetid://18747025078",
+            ["scan"]      = "rbxassetid://109869955247116",
+            ["alert"]     = "rbxassetid://73186275216515",
+            ["question"]  = "rbxassetid://17510196486",
+            ["idea"]      = "rbxassetid://16833255748",
+            ["strom"]     = "rbxassetid://13321880293",
+            ["water"]     = "rbxassetid://100076212630732",
+            ["dcs"]       = "rbxassetid://15310731934",
+            ["start"]     = "rbxassetid://108886429866687",
+            ["next"]      = "rbxassetid://12662718374",
+            ["rod"]       = "rbxassetid://103247953194129",
+            ["fish"]      = "rbxassetid://97167558235554",
+            ["send"]      = "rbxassetid://122775063389583",
+            ["home"]      = "rbxassetid://86450224791749",
+        }
 
         local iconId = ""
         if tabIcon and tabIcon ~= "" then
@@ -2492,5 +2310,7 @@ function Library:Window(config)
 
     return WindowObject
 end
+
+Library.Window = Library.Window
 
 return Library
