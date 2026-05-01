@@ -1,4 +1,3 @@
--- wdawd
 local Library = {}
 Library.flags = {}
 Library.pages = {}
@@ -77,22 +76,31 @@ function Library:AddSpawn(name, thread)
     return thread
 end
 function Library:Cleanup()
-    for _, conn in pairs(self._connections) do
-        pcall(function() conn:Disconnect() end)
+    if self._connections then
+        for _, conn in pairs(self._connections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        table.clear(self._connections)
     end
-    for _, thread in pairs(self._spawns) do
-        pcall(function() task.cancel(thread) end)
+    if self._spawns then
+        for _, thread in pairs(self._spawns) do
+            pcall(function() task.cancel(thread) end)
+        end
+        table.clear(self._spawns)
     end
     if self._saveThread then
         pcall(function() task.cancel(self._saveThread) end)
         self._saveThread = nil
     end
-    table.clear(self._connections)
-    table.clear(self._spawns)
-    table.clear(CallbackRegistry)
-    table.clear(self.flags)
-    table.clear(self.pages)
-    table.clear(self._navButtons)
+    if CallbackRegistry then table.clear(CallbackRegistry) end
+    if self.flags then table.clear(self.flags) end
+    if self.pages then table.clear(self.pages) end
+    if self._navButtons then table.clear(self._navButtons) end
+    self._dropdownOverlay = nil
+    self._dropdownPanel = nil
+    self._dropdownFolder = nil
+    self._dropdownPageLayout = nil
+    self._dropdownCount = 0
     self._currentPage = nil
     self._initialized = false
 end
