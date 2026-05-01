@@ -1,3 +1,4 @@
+-- wdawd
 local Library = {}
 Library.flags = {}
 Library.pages = {}
@@ -759,16 +760,31 @@ function Library:CreateToggle(parent, label, configPath, callback, disableSave, 
             Library.ConfigSystem.Set(configPath, on)
             MarkDirty()
         end
+        self.flags[configPath or label] = on
         if callback then callback(on) end
     end))
     if configPath and not disableSave then
         RegisterCallback(configPath, callback, "toggle", defaultValue or false, function(val)
             on = val
             updateVisual()
+            self.flags[configPath or label] = on
         end)
     end
     self.flags[configPath or label] = on
-    return frame
+    local toggleController = {
+        frame = frame,
+        set = function(val)
+            on = val
+            updateVisual()
+            if configPath and not disableSave then
+                Library.ConfigSystem.Set(configPath, on)
+                MarkDirty()
+            end
+            Library.flags[configPath or label] = on
+        end,
+        get = function() return on end
+    }
+    return toggleController
 end
 Library._dropdownOverlay = nil
 Library._dropdownPanel = nil
@@ -1407,6 +1423,31 @@ function Library:CreateMultiDropdown(parent, title, imageId, items, configPath, 
         self:_showDropdown(dropdownLayoutOrder)
     end))
     DropdownFunc:SetValues(items, savedValues)
+    if configPath then
+        RegisterCallback(configPath, onSelect, "multidropdown", defaultValues or {}, function(val)
+            if type(val) ~= "table" then val = {} end
+            DropdownFunc.Value = val
+            local texts = {}
+            for _, entry in ipairs(optionFrameCache) do
+                local opt = entry.frame
+                if opt and opt.Parent then
+                    local v = opt:GetAttribute("RealValue")
+                    local selected = table.find(val, v)
+                    if selected then
+                        opt.ChooseFrame.Size = UDim2.new(0, 1, 0, 12)
+                        opt.ChooseFrame.UIStroke.Transparency = 0
+                        opt.BackgroundTransparency = 0.935
+                        table.insert(texts, opt.OptionText.Text)
+                    else
+                        opt.ChooseFrame.Size = UDim2.new(0, 0, 0, 0)
+                        opt.ChooseFrame.UIStroke.Transparency = 0.999
+                        opt.BackgroundTransparency = 0.999
+                    end
+                end
+            end
+            optionLabel.Text = (#texts == 0) and "Select Options" or table.concat(texts, ", ")
+        end)
+    end
     if uniqueId then
         self.flags[uniqueId] = DropdownFunc
     end
@@ -1867,10 +1908,14 @@ function Library:Window(config)
                     toggleObj._value = val
                     if callback then callback(val) end
                 end
-                local frame = self._library:CreateToggle(self._container, title, configPath, wrappedCallback, noSave, default)
+                local toggleResult = self._library:CreateToggle(self._container, title, configPath, wrappedCallback, noSave, default)
+                local frame = toggleResult and toggleResult.frame or toggleResult
                 if frame then frame.LayoutOrder = getNextLayoutOrder() end
                 function toggleObj:SetValue(val)
                     self._value = val
+                    if toggleResult and toggleResult.set then
+                        toggleResult.set(val)
+                    end
                     if callback then callback(val) end
                 end
                 function toggleObj:GetValue()
