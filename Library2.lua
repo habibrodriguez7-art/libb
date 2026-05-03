@@ -1839,7 +1839,8 @@ function Library:Window(config)
     WindowObject._tabs = {}
     WindowObject._tabOrder = 0
     Library._initialized = false
-    task.delay(0.5, function()
+    task.spawn(function()
+        task.wait(0.5)
         if not Library._initialized then
             Library:Initialize()
         end
@@ -2118,7 +2119,7 @@ function Library:Window(config)
         table.insert(self._tabs, TabObject)
         return TabObject
     end
-    task.defer(function()
+    task.spawn(function()
         Library:_createConfigTab(WindowObject)
     end)
     return WindowObject
