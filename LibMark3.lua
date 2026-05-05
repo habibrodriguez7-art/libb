@@ -1,3 +1,4 @@
+-- tets
 local Library = {}
 Library.flags = {}
 Library.pages = {}
@@ -21,18 +22,18 @@ local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local localPlayer = Players.LocalPlayer
 local colors = {
-    primary = Color3.fromRGB(255, 160, 60),
-    secondary = Color3.fromRGB(70, 28, 4),
-    accent = Color3.fromRGB(30, 12, 2),
+    primary = Color3.fromRGB(255, 140, 0),
+    secondary = Color3.fromRGB(147, 112, 219),
+    accent = Color3.fromRGB(186, 85, 211),
     success = Color3.fromRGB(34, 197, 94),
-    bg1 = Color3.fromRGB(8, 4, 1),
-    bg2 = Color3.fromRGB(18, 8, 2),
-    bg3 = Color3.fromRGB(30, 12, 2),
-    bg4 = Color3.fromRGB(70, 28, 4),
-    text = Color3.fromRGB(255, 235, 210),
-    textDim = Color3.fromRGB(210, 150, 80),
-    textDimmer = Color3.fromRGB(165, 110, 55),
-    border = Color3.fromRGB(90, 40, 10),
+    bg1 = Color3.fromRGB(18, 18, 18),
+    bg2 = Color3.fromRGB(28, 28, 28),
+    bg3 = Color3.fromRGB(38, 38, 38),
+    bg4 = Color3.fromRGB(48, 48, 48),
+    text = Color3.fromRGB(255, 255, 255),
+    textDim = Color3.fromRGB(200, 200, 200),
+    textDimmer = Color3.fromRGB(150, 150, 150),
+    border = Color3.fromRGB(55, 55, 55),
 }
 local windowSize = UDim2.new(0, 420, 0, 280)
 local minWindowSize = Vector2.new(380, 250)
@@ -45,8 +46,6 @@ local fontSize = {
     normal = 11,
     small = 10,
 }
-local tweenFast = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local tweenSoft = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local function new(class, props)
     local inst = Instance.new(class)
     if props then
@@ -280,21 +279,6 @@ function Library:CreateWindow(config)
         ZIndex = 3
     })
     new("UICorner", {Parent = self._win, CornerRadius = UDim.new(0, 10)})
-    new("UIStroke", {
-        Parent = self._win,
-        Color = colors.primary,
-        Transparency = 0.75,
-        Thickness = 1
-    })
-    local winGradient = new("UIGradient", {
-        Parent = self._win,
-        Rotation = 90
-    })
-    winGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 4, 1)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 12, 2)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 4, 1)),
-    })
     self._sidebar = new("Frame", {
         Parent = self._win,
         Size = UDim2.new(0, sidebarWidth, 1, -42),
@@ -433,15 +417,6 @@ function Library:CreateWindow(config)
         ZIndex = 5
     })
     new("UICorner", {Parent = topBar, CornerRadius = UDim.new(0, 7)})
-    local topBarGrad = new("UIGradient", {
-        Parent = topBar,
-        Rotation = 0
-    })
-    topBarGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 12, 2)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(70, 28, 4)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 12, 2)),
-    })
     self._pageTitle = new("TextLabel", {
         Parent = topBar,
         Text = "Dashboard",
@@ -658,14 +633,6 @@ function Library:CreatePage(name, title, imageId, order)
         Name = "Label"
     })
     self._navButtons[name] = {btn = btn, indicator = indicator, page = page, title = title}
-    self:AddConnection("navHoverEnter_" .. name, btn.MouseEnter:Connect(function()
-        if self._currentPage == name then return end
-        TweenService:Create(btn, tweenFast, {BackgroundTransparency = 0.92}):Play()
-    end))
-    self:AddConnection("navHoverLeave_" .. name, btn.MouseLeave:Connect(function()
-        if self._currentPage == name then return end
-        TweenService:Create(btn, tweenFast, {BackgroundTransparency = 1}):Play()
-    end))
     self:AddConnection("navBtn_" .. name, btn.MouseButton1Click:Connect(function()
         self:_switchPage(name)
     end))
@@ -712,12 +679,6 @@ function Library:CreateCategory(parent, title)
         ZIndex = 6
     })
     new("UICorner", {Parent = categoryFrame, CornerRadius = UDim.new(0, 8)})
-    new("UIStroke", {
-        Parent = categoryFrame,
-        Color = colors.border,
-        Transparency = 0.55,
-        Thickness = 1
-    })
     local header = new("TextButton", {
         Parent = categoryFrame,
         Size = UDim2.new(1, 0, 0, 34),
@@ -749,15 +710,6 @@ function Library:CreateCategory(parent, title)
         TextColor3 = colors.primary,
         ZIndex = 8
     })
-    local categoryAccent = new("Frame", {
-        Parent = header,
-        Size = UDim2.new(0, 0, 0, 2),
-        Position = UDim2.new(0, 10, 1, -4),
-        BackgroundColor3 = colors.primary,
-        BorderSizePixel = 0,
-        ZIndex = 8
-    })
-    new("UICorner", {Parent = categoryAccent, CornerRadius = UDim.new(1, 0)})
     local contentContainer = new("Frame", {
         Parent = categoryFrame,
         Size = UDim2.new(1, -14, 0, 0),
@@ -775,7 +727,6 @@ function Library:CreateCategory(parent, title)
         contentContainer.Visible = isOpen
         arrow.Rotation = isOpen and 180 or 0
         categoryFrame.BackgroundTransparency = isOpen and 0.3 or 0.4
-        TweenService:Create(categoryAccent, tweenSoft, {Size = isOpen and UDim2.new(0, 80, 0, 2) or UDim2.new(0, 0, 0, 2)}):Play()
     end))
     return contentContainer
 end
@@ -1612,30 +1563,23 @@ function Library:CreateButton(parent, label, callback)
             activeTween:Cancel()
             activeTween = nil
         end
-        local tweenIn = TweenService:Create(btnFrame, tweenFast, {
+        local tweenIn = TweenService:Create(btnFrame, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             BackgroundTransparency = 0,
             Size = UDim2.new(1, -4, 0, 28)
         })
         activeTween = tweenIn
         tweenIn:Play()
-        task.spawn(function()
-            pcall(callback)
-        end)
-        local tweenOut = TweenService:Create(btnFrame, tweenSoft, {
+        tweenIn.Completed:Wait()
+        pcall(callback)
+        local tweenOut = TweenService:Create(btnFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             BackgroundTransparency = 0.15,
             Size = UDim2.new(1, 0, 0, 30)
         })
-        task.delay(0.08, function()
-            if activeTween ~= tweenIn then return end
-            activeTween = tweenOut
-            tweenOut:Play()
-            task.delay(0.2, function()
-                if activeTween == tweenOut then
-                    activeTween = nil
-                    clicking = false
-                end
-            end)
-        end)
+        activeTween = tweenOut
+        tweenOut:Play()
+        tweenOut.Completed:Wait()
+        activeTween = nil
+        clicking = false
     end))
     return btnFrame
 end
