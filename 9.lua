@@ -1,4 +1,3 @@
---wwd
 local Library = {}
 Library.flags = {}
 Library.pages = {}
@@ -38,11 +37,11 @@ local windowSize = UDim2.new(0, 420, 0, 280)
 local minWindowSize = Vector2.new(380, 250)
 local maxWindowSize = Vector2.new(800, 600)
 local sidebarWidth = 120
-local headerHeight = 37
+local headerHeight = 38
 local topBarHeight = 28
 local sectionHeaderHeight = 30
 local panelTransparency = 0.1
-local sectionTransparency = 0.25
+local sectionTransparency = 0.30
 local fontSize = {
     title = 15,
     subtitle = 11,
